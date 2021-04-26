@@ -28,8 +28,11 @@
 <meta property="og:description" content="hijack_modprobe_path篇 原理同hijack_prctl, 当用户执行错误格式的elf文件时内核调用call_usermodehelper(char *modprobe_path …)  修改modprobe后，即可实现root权限任意命令执行  攻击流程  (内核任意读写漏洞)内核修改全局变量 modprobe_path为目标指令 写入错误格式elf文件，并手动执行，触发">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2021-02-02T10:31:33.000Z">
-<meta property="article:modified_time" content="2021-04-26T06:37:23.992Z">
+<meta property="article:modified_time" content="2021-04-26T07:03:16.971Z">
 <meta property="article:author" content="foxllb">
+<meta property="article:tag" content="内核态">
+<meta property="article:tag" content="exp">
+<meta property="article:tag" content="任意读写">
 <meta name="twitter:card" content="summary">
 
 <link rel="canonical" href="http://example.com/2021/02/02/kernel_rw4/">
@@ -190,8 +193,17 @@
                   <i class="far fa-calendar-check"></i>
                 </span>
                 <span class="post-meta-item-text">更新于</span>
-                <time title="修改时间：2021-04-26 14:37:23" itemprop="dateModified" datetime="2021-04-26T14:37:23+08:00">2021-04-26</time>
+                <time title="修改时间：2021-04-26 15:03:16" itemprop="dateModified" datetime="2021-04-26T15:03:16+08:00">2021-04-26</time>
               </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/Linux%E5%86%85%E6%A0%B8%E6%80%81/" itemprop="url" rel="index"><span itemprop="name">Linux内核态</span></a>
+                </span>
+            </span>
 
           
 
@@ -236,6 +248,11 @@
     
 
       <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%86%85%E6%A0%B8%E6%80%81/" rel="tag"># 内核态</a>
+              <a href="/tags/exp/" rel="tag"># exp</a>
+              <a href="/tags/%E4%BB%BB%E6%84%8F%E8%AF%BB%E5%86%99/" rel="tag"># 任意读写</a>
+          </div>
 
         
 
@@ -247,8 +264,8 @@
       <i class="fa fa-chevron-left"></i> Linux内核提权总结----任意读写(3)
     </a></div>
       <div class="post-nav-item">
-    <a href="/2021/03/20/userCVE/" rel="next" title="用户态cve复现">
-      用户态cve复现 <i class="fa fa-chevron-right"></i>
+    <a href="/2021/03/20/userCVE/" rel="next" title="用户态CVE复现">
+      用户态CVE复现 <i class="fa fa-chevron-right"></i>
     </a></div>
     </div>
       </footer>
@@ -335,7 +352,7 @@
       <div class="site-state-item site-state-tags">
             <a href="/tags/">
           
-        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-count">10</span>
         <span class="site-state-item-name">标签</span></a>
       </div>
   </nav>
