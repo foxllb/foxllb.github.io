@@ -135,8 +135,7 @@
         output.textContent = "请求发送中...";
 
         try {
-          const callbackId = `dev_${Date.now()}`;
-          window.JsRuntime.invoke("getDeviceInfo", "{}", callbackId);
+          window.wallet.getShowAsset();
         } catch (error) {
           output.textContent = `请求失败: ${error.message}`;
         }
