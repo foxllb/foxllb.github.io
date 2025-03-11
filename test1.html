@@ -1,145 +1,115 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>test</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSBridge Token Demo</title>
+    <!-- 引入 DSBridge 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/dsbridge@3.1.4/dist/dsbridge.js"></script>
     <style>
-      body {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          min-height: 100vh;
-          margin: 0;
-          padding: 15vh 20px 0;
-          background: #f0f2f5;
-          box-sizing: border-box;
-          ​**font-size: 36px;**​ /* 全局基准字号 ×2 */
-      }
-
-      pre {
-          padding: 20px;
-          border: 1px solid #ddd;
-          background: #fff;
-          white-space: pre-wrap;
-          overflow-wrap: break-word;
-          width: 600px;
-          min-height: 200px;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          ​**line-height: 1.8;**​ /* 行高 ×2 */
-          ​**font-family: monospace, sans-serif;**​ /* 明确字體 */
-          margin-top: 30px;
-      }
-
-      button {
-          padding: 16px 40px; /* 内边距 ×2 */
-          background: #007bff;
-          color: white;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-size: ​**36px;**​ /* 按钮字号 ×2 */
-          transition: all 0.3s;
-          transform: translateY(20%);
-          ​**min-width: 220px;**​ /* 最小宽度 ×2 */
-      }
-
-      button:hover {
-          background: #0056b3;
-          transform: translateY(15%);
-      }
-
-      @media (max-height: 600px) {
-          body {
-              padding-top: 80px;
-          }
-      }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+        .error {
+            color: #dc3545;
+            border-color: #f8d7da;
+        }
     </style>
-  </head>
-
-  <body>
-    <button onclick="getAppVersion()">getAppVersion</button>
-    <button onclick="getDeviceInfo()">getDeviceInfo</button>
-    <button onclick="requestGetUserInfo()">requestGetUserInfo</button>
-    <button onclick="requestGetHistory()">RequestGetHistory</button>
-    <pre id="raw-output">test</pre>
+</head>
+<body>
+    <h1>Token 获取演示</h1>
+    
+    <button onclick="getToken()">获取 Token</button>
+    <div id="result"></div>
 
     <script>
-      window.jsb = {
-        handleMessage: function (response) {
-          const output = document.getElementById("raw-output");
-          try {
-            const rawString = JSON.stringify(response, null, 2);
-            if (response["callback_id"] == 1000) {
+        // 初始化 DSBridge
+        function initDSBridge() {
+            // 验证 DSBridge 是否可用
+            if (!window.dsBridge) {
+                showResult("Error: DSBridge 未正确加载", true);
+                return;
             }
-            output.textContent = rawString;
-          } catch (e) {
-            output.textContent = `解析错误: ${e.message}`;
-          }
-        },
-      };
-
-      function requestGetUserInfo() {
-        const output = document.getElementById("raw-output");
-        output.textContent = "(requestData)请求发送中...";
-
-        try {
-          req_data =
-            '{"path":"api/getuserinfo","method":"GET","data":"{}","header":"{}"}';
-          window.JsRuntime.invoke("request", req_data, 1000);
-        } catch (error) {
-          output.textContent = `请求失败: ${error.message}`;
         }
-      }
 
-      function requestGetHistory() {
-        const output = document.getElementById("raw-output");
-        output.textContent = "(requestData)请求发送中...";
-
-        try {
-          const data = {
-            agentId: "naQivTmsDa",
-            offset: 0,
-            limit: 40,
-            filterGoodQuestion: true,
-          };
-          const dataJson = JSON.stringify(data);
-          const requestConfig = {
-            path: "api/user/agent/conversation/list",
-            method: "POST",
-            data: dataJson,
-            header: {},
-          };
-          const str2 = JSON.stringify(requestConfig, null, 2);
-          callback_id = 1013;
-          window.JsRuntime.invoke("request", str2, callback_id);
-        } catch (error) {
-          output.textContent = `请求失败: ${error.message}`;
+        // 获取 Token 主逻辑
+        function getToken() {
+            try {
+                // 同步调用 Java 方法
+                const token = dsBridge.call("account.tokenSync", null);
+                
+                // 显示结果
+                showResult(`Token 获取成功: ${token}`);
+                
+                // 以下是可选的实际应用场景示例
+                // 1. 存储到 localStorage
+                // localStorage.setItem("authToken", token);
+                
+                // 2. 设置 API 请求头
+                // setAuthHeader(token);
+                
+                // 3. 跳转到其他页面
+                // window.location.href = `/dashboard?token=${encodeURIComponent(token)}`;
+                
+            } catch (e) {
+                // 错误处理
+                console.error("调用失败:", e);
+                showResult(`错误: ${e.message || e}`, true);
+                
+                // 可选：跳转到登录页
+                // window.location.href = '/login';
+            }
         }
-      }
 
-      function getAppVersion() {
-        const output = document.getElementById("raw-output");
-        output.textContent = "请求发送中...";
-        try {
-          window.account.token({}, function (response) {
-            console.log("获取到的本地Token:", response);
-          });
-        } catch (error) {
-          output.textContent = `请求失败: ${error.message}`;
+        // 显示结果到页面
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById("result");
+            resultDiv.textContent = content;
+            resultDiv.className = isError ? "error" : "";
         }
-      }
 
-      function getDeviceInfo() {
-        const output = document.getElementById("raw-output");
-        output.textContent = "请求发送中...";
-
-        try {
-          window.wallet.getShowAsset();
-        } catch (error) {
-          output.textContent = `请求失败: ${error.message}`;
+        // 示例：设置请求头（可选功能）
+        function setAuthHeader(token) {
+            // 使用 Axios 示例
+            if (window.axios) {
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            }
+            
+            // 原生 fetch 示例
+            window.fetch = (originalFetch => {
+                return function(url, options = {}) {
+                    options.headers = {
+                        ...options.headers,
+                        'Authorization': `Bearer ${token}`
+                    };
+                    return originalFetch(url, options);
+                };
+            })(window.fetch);
         }
-      }
+
+        // 初始化
+        initDSBridge();
     </script>
-  </body>
+</body>
 </html>
