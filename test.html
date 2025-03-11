@@ -122,7 +122,9 @@
         const output = document.getElementById("raw-output");
         output.textContent = "请求发送中...";
         try {
-          window.account.token();
+          window.account.token({}, function (response) {
+            console.log("获取到的本地Token:", response);
+          });
         } catch (error) {
           output.textContent = `请求失败: ${error.message}`;
         }
