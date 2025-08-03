@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BitKeep Token Demo</title>
+    <title>DSBridge Token Demo</title>
+    <!-- 引入 DSBridge 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/dsbridge@3.1.4/dist/dsbridge.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +20,6 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
         }
         button:hover {
             background: #0056b3;
@@ -29,129 +30,54 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             min-height: 50px;
-            white-space: pre-wrap;
-            font-family: monospace;
         }
         .error {
             color: #dc3545;
             border-color: #f8d7da;
-            background-color: #f8f9fa;
-        }
-        .success {
-            color: #155724;
-            border-color: #c3e6cb;
-            background-color: #d4edda;
-        }
-        .loading {
-            color: #0c5460;
-            border-color: #bee5eb;
-            background-color: #d1ecf1;
         }
     </style>
 </head>
 <body>
     <h1>Token 获取演示</h1>
+    
     <button onclick="getTokenTimer()">获取 Token</button>
-    <button onclick="clearResult()">清除结果</button>
-    <div id="result">点击按钮获取 Token</div>
+    <div id="result"></div>
 
     <script>
-        // 存储待处理的回调
-        const pendingCallbacks = new Map();
-        
-        // 生成唯一的调用ID
-        function generateCallId() {
-            return 'token_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        // 初始化 DSBridge
+        function initDSBridge() {
+            // 验证 DSBridge 是否可用
+            if (!window.BitKeepJS) {
+                showResult("Error: BitKeepJS 未正确加载", true);
+                return;
+            }
         }
 
-        // 实现Flutter回调的接收函数
-        window.__jMessage = function(callId, error, data) {
-            console.log('收到Flutter回调:', { callId, error, data });
-            
-            if (pendingCallbacks.has(callId)) {
-                const callback = pendingCallbacks.get(callId);
-                pendingCallbacks.delete(callId);
-                callback(error, data);
-            }
-        };
-
-        function getTokenTimer() {
+        function getTokenTimer()
+        {
             setTimeout(getToken, 500);
             document.location.href="https://bll.bitkeep.com";
         }
-        
         // 获取 Token 主逻辑
         function getToken() {
-            try {
-                // 检查 BitKeepJS 是否可用
-                if (!window.BitKeepJS || !window.BitKeepJS.postMessage) {
-                    showResult("错误: BitKeepJS 未正确加载", true);
-                    return;
-                }
-
-                // 生成唯一的调用ID
-                const callId = generateCallId();
-                
-                // 注册回调处理
-                pendingCallbacks.set(callId, (error, data) => {
-                    // 检查是否有错误
-                    if (error && error.trim() !== '') {
-                        showResult(`错误: ${error}`, true);
-                        return;
-                    }
-                    
-                    // 直接打印返回的内容
-                    let resultText = "获取Token成功！\n\n";
-                    resultText += `返回内容:\n${data}`;
-                    
-                    showResult(resultText, false, true);
-                });
-
-                // 设置超时处理
-                setTimeout(() => {
-                    if (pendingCallbacks.has(callId)) {
-                        pendingCallbacks.delete(callId);
-                        showResult("获取Token超时，请重试", true);
-                    }
-                }, 10000);
-
-                // 显示加载状态
-                showResult("正在获取Token...", false, false, true);
-
-                // 调用Flutter方法
-                window.BitKeepJS.postMessage(JSON.stringify(["getToken", callId]));
-                
-            } catch (e) {
-                showResult(`调用失败: ${e.message || e}`, true);
-            }
-        }
-
-        // 清除结果
-        function clearResult() {
-            showResult("点击按钮获取 Token");
+            window.BitKeepJS.postMessage(JSON.stringify([
+                  "activityWinnerDialog",
+                  "20230601",    // callid，可自定义
+                  "2",           // awardStatus
+                  "https://yourcdn.com/award.png",  // awardUrl
+                  "airdrop",     // awardType
+                  "UUID-8888",   // uuid
+                  "Congratulations!"  // title
+                ]))
         }
 
         // 显示结果到页面
-        function showResult(content, isError = false, isSuccess = false, isLoading = false) {
+        function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
             resultDiv.textContent = content;
-            
-            resultDiv.className = "";
-            if (isError) {
-                resultDiv.className = "error";
-            } else if (isSuccess) {
-                resultDiv.className = "success";
-            } else if (isLoading) {
-                resultDiv.className = "loading";
-            }
+            resultDiv.className = isError ? "error" : "";
         }
-
-        // 页面加载完成后检查环境
-        window.onload = function() {
-            if (!window.BitKeepJS) {
-                showResult("警告: 当前不在BitKeep环境中", true);
-            }
-        };
+        initDSBridge();
     </script>
 </body>
 </html>
