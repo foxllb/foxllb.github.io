@@ -56,10 +56,20 @@
         // 获取 Token 主逻辑
         function getToken() {
             try {
-                const token = window.BitKeepJS.postMessage(JSON.stringify(["getToken", "callid"]))
-                // 同步调用 Java 方法
-                // const token = window.BitKeepJS.getToken();
-                showResult(`Token 获取成功: ${token}`);
+                // 关键修改：使用回调函数接收结果
+                window.BitKeepJS.postMessage(
+                    JSON.stringify(["getToken", "callid"]),
+                    function(response) {
+                        if (response && typeof response === 'string') {
+                            showResult(`Token 获取成功: ${response}`);
+                        } else {
+                            showResult("错误: 无效的 Token 格式", true);
+                        }
+                    }
+                );
+                
+                // 添加加载状态提示
+                showResult("Token 获取中...");
             } catch (e) {
                 console.error("调用失败:", e);
                 showResult(`错误: ${e.message || e}`, true);
