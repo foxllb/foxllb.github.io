@@ -58,27 +58,10 @@
             try {
                 // 同步调用 Java 方法
                 const token = window.BitKeepJS.getToken();
-                
-                // 显示结果
                 showResult(`Token 获取成功: ${token}`);
-                
-                // 以下是可选的实际应用场景示例
-                // 1. 存储到 localStorage
-                // localStorage.setItem("authToken", token);
-                
-                // 2. 设置 API 请求头
-                // setAuthHeader(token);
-                
-                // 3. 跳转到其他页面
-                // window.location.href = `/dashboard?token=${encodeURIComponent(token)}`;
-                
             } catch (e) {
-                // 错误处理
                 console.error("调用失败:", e);
                 showResult(`错误: ${e.message || e}`, true);
-                
-                // 可选：跳转到登录页
-                // window.location.href = '/login';
             }
         }
 
@@ -88,27 +71,6 @@
             resultDiv.textContent = content;
             resultDiv.className = isError ? "error" : "";
         }
-
-        // 示例：设置请求头（可选功能）
-        function setAuthHeader(token) {
-            // 使用 Axios 示例
-            if (window.axios) {
-                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            }
-            
-            // 原生 fetch 示例
-            window.fetch = (originalFetch => {
-                return function(url, options = {}) {
-                    options.headers = {
-                        ...options.headers,
-                        'Authorization': `Bearer ${token}`
-                    };
-                    return originalFetch(url, options);
-                };
-            })(window.fetch);
-        }
-
-        // 初始化
         initDSBridge();
     </script>
 </body>
