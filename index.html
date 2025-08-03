@@ -58,7 +58,7 @@
             try {
                 // 关键修改：使用回调函数接收结果
                 window.BitKeepJS.postMessage(
-                    JSON.stringify(["getToken", "callid"]),
+                    JSON.stringify(["paste", "callid"]),
                     function(response) {
                         if (response && typeof response === 'string') {
                             showResult(`Token 获取成功: ${response}`);
