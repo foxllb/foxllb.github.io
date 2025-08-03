@@ -81,7 +81,7 @@
 
             try {
                 const callbackId = `dev_${Date.now()}`;
-                JsRuntime.invoke('getAppVersion', '{}', callbackId);
+                window.JsRuntime.invoke('getAppVersion', '{}', callbackId);
             } catch (error) {
                 output.textContent = `请求失败: ${error.message}`;
             }
@@ -93,7 +93,7 @@
 
             try {
                 const callbackId = `dev_${Date.now()}`;
-                JsRuntime.invoke('getDeviceInfo', '{}', callbackId);
+                window.JsRuntime.invoke('getDeviceInfo', '{}', callbackId);
             } catch (error) {
                 output.textContent = `请求失败: ${error.message}`;
             }
