@@ -56,10 +56,10 @@
         // 获取 Token 主逻辑
         function getToken() {
             try {
-                window.BitKeepJS.postMessage(JSON.stringify(["getToken", "callid"]))
+                const token = window.BitKeepJS.postMessage(JSON.stringify(["getToken", "callid"]))
                 // 同步调用 Java 方法
                 // const token = window.BitKeepJS.getToken();
-                // showResult(`Token 获取成功: ${token}`);
+                showResult(`Token 获取成功: ${token}`);
             } catch (e) {
                 console.error("调用失败:", e);
                 showResult(`错误: ${e.message || e}`, true);
