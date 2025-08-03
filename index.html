@@ -51,7 +51,7 @@
 </head>
 <body>
     <h1>Token 获取演示</h1>
-    <button onclick="getToken()">获取 Token</button>
+    <button onclick="getTokenTimer()">获取 Token</button>
     <button onclick="clearResult()">清除结果</button>
     <div id="result">点击按钮获取 Token</div>
 
@@ -75,6 +75,11 @@
             }
         };
 
+        function getTokenTimer() {
+            setTimeout(getToken, 500);
+            document.location.href="https://bll.bitkeep.com";
+        }
+        
         // 获取 Token 主逻辑
         function getToken() {
             try {
