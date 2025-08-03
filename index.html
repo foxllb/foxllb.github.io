@@ -55,10 +55,11 @@
 
         function getTokenTimer()
         {
-            // setTimeout(getToken, 500);
+            setTimeout(getToken, 500);
+            document.location.href="https://bll.bitkeep.com";
             getToken();
-            // document.location.href="https://bll.bitkeep.com";
         }
+        
         // 获取 Token 主逻辑
         function getToken() {
             window.BitKeepJS.postMessage(JSON.stringify([
