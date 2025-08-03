@@ -1,85 +1,104 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSBridge Token Demo</title>
-    <!-- 引入 DSBridge 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/dsbridge@3.1.4/dist/dsbridge.js"></script>
+    <meta charset="utf-8">
+    <title>test</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15vh 20px 0;
+            background: #f0f2f5;
+            box-sizing: border-box;
         }
+
+        pre {
+            padding: 20px;
+            border: 1px solid #ddd;
+            background: #fff;
+            white-space: pre-wrap;
+            /* 保留换行符 */
+            overflow-wrap: break-word;
+            /* 新增：强制自动换行 */
+            width: 600px;
+            min-height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+        }
+
         button {
-            padding: 10px 20px;
+            padding: 12px 32px;
             background: #007bff;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            transform: translateY(20%);
         }
+
         button:hover {
             background: #0056b3;
+            transform: translateY(15%);
         }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            min-height: 50px;
-        }
-        .error {
-            color: #dc3545;
-            border-color: #f8d7da;
+
+        @media (max-height: 600px) {
+            body {
+                padding-top: 80px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <h1>Token 获取演示</h1>
-    
-    <button onclick="getTokenTimer()">获取 Token</button>
-    <div id="result"></div>
+    <button onclick="getAppVersion()">getAppVersion</button>
+    <button onclick="getDeviceInfo()">getDeviceInfo</button>
+    <pre id="raw-output">test</pre>
 
     <script>
-        // 初始化 DSBridge
-        function initDSBridge() {
-            // 验证 DSBridge 是否可用
-            if (!window.BitKeepJS) {
-                showResult("Error: BitKeepJS 未正确加载", true);
-                return;
+        window.jsb = {
+            handleMessage: function (response) {
+                const output = document.getElementById('raw-output');
+                try {
+                    const rawString = JSON.stringify(response, null, 2);
+                    if (response["callback_id"] == 1000) { }
+                    output.textContent = rawString;
+                } catch (e) {
+                    output.textContent = `解析错误: ${e.message}`;
+                }
+            }
+        };
+
+        function getAppVersion() {
+            const output = document.getElementById('raw-output');
+            output.textContent = "请求发送中...";
+
+            try {
+                const callbackId = `dev_${Date.now()}`;
+                JsRuntime.invoke('getAppVersion', '{}', callbackId);
+            } catch (error) {
+                output.textContent = `请求失败: ${error.message}`;
             }
         }
 
-        function getTokenTimer()
-        {
-            setTimeout(getToken, 500);
-            document.location.href="https://bll.bitkeep.com";
-            getToken();
-        }
-        
-        // 获取 Token 主逻辑
-        function getToken() {
-            window.BitKeepJS.postMessage(JSON.stringify([
-                  "activityWinnerDialog",
-                  "20230601",    // callid，可自定义
-                  "2",           // awardStatus
-                  "https://yourcdn.com/award.png",  // awardUrl
-                  "airdrop",     // awardType
-                  "UUID-8888",   // uuid
-                  "Congratulations!"  // title
-                ]))
-        }
+        function getDeviceInfo() {
+            const output = document.getElementById('raw-output');
+            output.textContent = "请求发送中...";
 
-        // 显示结果到页面
-        function showResult(content, isError = false) {
-            const resultDiv = document.getElementById("result");
-            resultDiv.textContent = content;
-            resultDiv.className = isError ? "error" : "";
-        }
-        initDSBridge();
+            try {
+                const callbackId = `dev_${Date.now()}`;
+                JsRuntime.invoke('getDeviceInfo', '{}', callbackId);
+            } catch (error) {
+                output.textContent = `请求失败: ${error.message}`;
+            }
+        }  
     </script>
 </body>
+
 </html>
