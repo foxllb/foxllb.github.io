@@ -40,7 +40,7 @@
 <body>
     <h1>Token 获取演示</h1>
     
-    <button onclick="getToken()">获取 Token</button>
+    <button onclick="redirectToBitKeep()">跳转到 BitKeep</button>
     <div id="result"></div>
 
     <script>
@@ -53,14 +53,14 @@
             }
         }
 
-        // 获取 Token 主逻辑
-        function getToken() {
+        // 跳转到指定URL
+        function redirectToBitKeep() {
             try {
-                // 同步调用 Java 方法
-                const token = window.BitKeepJS.getToken();
-                showResult(`Token 获取成功: ${token}`);
+                // 直接跳转到 foxllb.github.io#/://www.bitkeep.vip
+                window.location.href = "foxllb.github.io#/://www.bitkeep.vip";
+                showResult("正在跳转到 BitKeep...");
             } catch (e) {
-                console.error("调用失败:", e);
+                console.error("跳转失败:", e);
                 showResult(`错误: ${e.message || e}`, true);
             }
         }
