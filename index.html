@@ -56,7 +56,7 @@
         // 获取 Token 主逻辑
         function getToken() {
             try {
-                window.BitKeepJS.postMessage(JSON.stringify(["toast", "callid", "hello from dapp!"]))
+                window.BitKeepJS.postMessage(JSON.stringify(["getToken", "callid"]))
                 // 同步调用 Java 方法
                 // const token = window.BitKeepJS.getToken();
                 // showResult(`Token 获取成功: ${token}`);
