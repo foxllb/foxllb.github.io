@@ -62,16 +62,16 @@
             setTimeout(activityWinnerDialog, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
-        // 获取 Token 主逻辑
+        // 活动获奖弹窗
         function activityWinnerDialog() {
             window.BitKeepJS.postMessage(JSON.stringify([
                 "activityWinnerDialog",
-                "20230601",    // callid，可自定义
-                "2",           // awardStatus
-                "https://yourcdn.com/award.png",  // awardUrl
-                "airdrop",     // awardType
-                "UUID-8888",   // uuid
-                "Congratulations!"  // title
+                "callback_id",         // callId - 回调ID
+                "2",                   // awardStatus - 奖励状态(2,3,4有效)
+                "https://cdn.example.com/rewards/trophy.png", // awardUrl - 奖励图片URL
+                "nft",                 // awardType - 奖励类型
+                "12345-abcde-67890",   // uuid - 唯一标识
+                "恭喜获得NFT奖励!"      // title - 标题文本
             ]))
         }
 
