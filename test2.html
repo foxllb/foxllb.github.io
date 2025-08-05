@@ -4,9 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSBridge Token Demo</title>
-    <!-- 引入 DSBridge 库 -->
-    <script src="https://cdn.jsdelivr.net/npm/dsbridge@3.1.4/dist/dsbridge.js"></script>
+    <title>JSBridge测试</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,25 +42,16 @@
 </head>
 
 <body>
-    <h1>Token 获取演示</h1>
+    <h1>JSBridge测试</h1>
     <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
-    <button onclick="getTokenTimer()">获取Token</button>
     <div id="result"></div>
 
     <script>
-        // 初始化 DSBridge
-        function initDSBridge() {
-            // 验证 DSBridge 是否可用
-            if (!window.BitKeepJS) {
-                showResult("Error: BitKeepJS 未正确加载", true);
-                return;
-            }
-        }
-
         function activityWinnerDialogTimer() {
             setTimeout(activityWinnerDialog, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
+
         // 活动获奖弹窗
         function activityWinnerDialog() {
             window.BitKeepJS.postMessage(JSON.stringify([
@@ -75,50 +64,6 @@
                 "恭喜获得NFT奖励!"      // title - 标题文本
             ]))
         }
-
-        function getTokenTimer() {
-            setTimeout(getToken, 500);
-            document.location.href = "https://bll.bitkeep.com";
-        }
-
-          // 获取Token函数
-  function getToken() {
-      // 创建唯一回调ID
-      const callbackId = "token_" + Date.now();
-
-      // 定义全局回调函数
-      window[callbackId] = function(error, tokenData) {
-          if (error) {
-              showResult("获取Token失败: " + error, true);
-              return;
-          }
-
-          try {
-              // 解析返回的Token数据
-              const tokenInfo = JSON.parse(tokenData);
-
-              // 格式化显示Token信息
-              let resultText = "获取Token成功:\n";
-              resultText += "- pluto_sessionid: " + (tokenInfo.pluto_sessionid || "未获取") + "\n";
-              resultText += "- rtoken: " + (tokenInfo.rtoken || "未获取") + "\n";
-              resultText += "- csrfToken: " + (tokenInfo.csrfToken || "未获取") + "\n";
-              resultText += "- encryptCsrfToken: " + (tokenInfo.encryptCsrfToken || "未获取");
-
-              showResult(resultText);
-          } catch (e) {
-              showResult("解析Token数据失败: " + e.message, true);
-          }
-
-          // 清理全局回调函数
-          delete window[callbackId];
-      };
-
-      // 调用原生方法获取Token
-      window.BitKeepJS.postMessage(JSON.stringify([
-          "getToken",    // 方法名
-          callbackId     // 回调ID
-      ]));
-  }
 
         // 显示结果到页面
         function showResult(content, isError = false) {
