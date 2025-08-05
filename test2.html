@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
             margin: 20px auto;
             padding: 20px;
         }
+
         button {
             padding: 10px 20px;
             background: #007bff;
@@ -21,9 +23,11 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
         button:hover {
             background: #0056b3;
         }
+
         #result {
             margin-top: 20px;
             padding: 15px;
@@ -31,47 +35,45 @@
             border-radius: 4px;
             min-height: 50px;
         }
+
         .error {
             color: #dc3545;
             border-color: #f8d7da;
         }
     </style>
 </head>
+
 <body>
     <h1>Token 获取演示</h1>
-    <button onclick="getTokenTimer()">获取 Token</button>
+    <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
     <div id="result"></div>
 
     <script>
-        // 初始化 DSBridge
         function initDSBridge() {
-            // 验证 DSBridge 是否可用
             if (!window.BitKeepJS) {
                 showResult("Error: BitKeepJS 未正确加载", true);
                 return;
             }
         }
 
-        function getTokenTimer()
-        {
+        function activityWinnerDialogTimer() {
             setTimeout(getToken, 500);
-            document.location.href="https://bll.bitkeep.com";
+            document.location.href = "https://bll.bitkeep.com";
             getToken();
         }
-        // 获取 Token 主逻辑
-        function getToken() {
+
+        function activityWinnerDialog() {
             window.BitKeepJS.postMessage(JSON.stringify([
-                  "activityWinnerDialog",
-                  "20230601",    // callid，可自定义
-                  "2",           // awardStatus
-                  "https://yourcdn.com/award.png",  // awardUrl
-                  "airdrop",     // awardType
-                  "UUID-8888",   // uuid
-                  "Congratulations!"  // title
-                ]))
+                "activityWinnerDialog",
+                "0",           // callId (first parameter is actually the callback ID)
+                2,             // awardStatus (as integer, not string) - 2, 3, or 4 triggers dialog display
+                "https://example.com/awards/prize.png",  // awardUrl
+                "token",       // awardType
+                "activity-123456",   // uuid - unique identifier for the award
+                "Congratulations on your prize!"  // title - more descriptive
+            ]))
         }
 
-        // 显示结果到页面
         function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
             resultDiv.textContent = content;
@@ -80,4 +82,5 @@
         initDSBridge();
     </script>
 </body>
+
 </html>
