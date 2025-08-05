@@ -1,4 +1,87 @@
-  // 获取Token函数
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSBridge Token Demo</title>
+    <!-- 引入 DSBridge 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/dsbridge@3.1.4/dist/dsbridge.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+
+        .error {
+            color: #dc3545;
+            border-color: #f8d7da;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Token 获取演示</h1>
+    <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
+    <button onclick="getTokenTimer()">获取Token</button>
+    <div id="result"></div>
+
+    <script>
+        // 初始化 DSBridge
+        function initDSBridge() {
+            // 验证 DSBridge 是否可用
+            if (!window.BitKeepJS) {
+                showResult("Error: BitKeepJS 未正确加载", true);
+                return;
+            }
+        }
+
+        function activityWinnerDialogTimer() {
+            setTimeout(activityWinnerDialog, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
+        // 活动获奖弹窗
+        function activityWinnerDialog() {
+            window.BitKeepJS.postMessage(JSON.stringify([
+                "activityWinnerDialog",
+                "callback_id",         // callId - 回调ID
+                "2",                   // awardStatus - 奖励状态(2,3,4有效)
+                "https://cdn.example.com/rewards/trophy.png", // awardUrl - 奖励图片URL
+                "nft",                 // awardType - 奖励类型
+                "12345-abcde-67890",   // uuid - 唯一标识
+                "恭喜获得NFT奖励!"      // title - 标题文本
+            ]))
+        }
+
+        function getTokenTimer() {
+            setTimeout(getToken, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
+
+          // 获取Token函数
   function getToken() {
       // 创建唯一回调ID
       const callbackId = "token_" + Date.now();
@@ -36,3 +119,23 @@
           callbackId     // 回调ID
       ]));
   }
+
+        // 显示结果到页面
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById("result");
+
+            // 处理换行符，确保在HTML中正确显示
+            if (typeof content === "string") {
+                content = content.replace(/\n/g, "<br>");
+                resultDiv.innerHTML = content;
+            } else {
+                resultDiv.textContent = content;
+            }
+
+            resultDiv.className = isError ? "error" : "";
+        }
+        initDSBridge();
+    </script>
+</body>
+
+</html>
