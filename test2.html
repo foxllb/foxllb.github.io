@@ -39,6 +39,7 @@
     
     // 按钮回调
     function onGetToken() {
+        console.log("test")
         // 清空展示区
         document.getElementById('result').innerText = "获取中，请稍候...";
         getToken().then(token => {
