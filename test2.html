@@ -1,57 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>getToken Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSBridge测试</title>
     <style>
-        body { font-family: Arial; max-width: 600px; margin: 20px auto; }
-        #result { margin-top: 20px; border: 1px solid #eee; padding: 10px; min-height: 40px; border-radius: 3px; }
-        button { padding: 8px 20px; border: 0; background: #007bff; color: #fff; border-radius: 3px; cursor: pointer;}
-        button:hover { background: #0056b3;}
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 50px;
+        }
+
+        .error {
+            color: #dc3545;
+            border-color: #f8d7da;
+        }
     </style>
 </head>
+
 <body>
-    <h2>调用 getToken</h2>
-    <button onclick="onGetTokenTimer()">获取Token并显示</button>
-    <div id="result">请点击上方按钮获取Token</div>
+    <h1>JSBridge测试</h1>
+    <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
+    <button onclick="getCacheTimer()">getCache</button>
+    <div id="result"></div>
 
-<script>
-    // 封装Promise方式调用 getToken
-    function getToken() {
-        return new Promise((resolve, reject) => {
-            // 覆盖 window.__jMessage 作回调
-            window.__jMessage = function(res) {
-                // 判断res是否符合你项目约定（可根据你们接口具体格式做更完善判断）
-                if (res && res.error) {
-                    reject(res.error);
-                } else {
-                    resolve(res);
-                }
-            };
-            window.__jHost("getToken"); // 向原生发送调用请求
-        });
-    }
+    <script>
+        function activityWinnerDialogTimer() {
+            setTimeout(activityWinnerDialog, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
 
-    function onGetTokenTimer() {
-        setTimeout(onGetToken, 500);
-        document.location.href = "https://bll.bitkeep.com";
-    }
-    
-    // 按钮回调
-    function onGetToken() {
-        console.log("test")
-        // 清空展示区
-        document.getElementById('result').innerText = "获取中，请稍候...";
-        getToken().then(token => {
-            // 格式化展示
-            let text = (typeof token === "object") 
-                ? JSON.stringify(token, null, 2)
-                : String(token);
-            document.getElementById('result').innerText = "获取成功：\n" + text;
-        }).catch(err => {
-            document.getElementById('result').innerText = "获取失败：" + err;
-        });
-    }
-</script>
+        function getCacheTimer() {
+            setTimeout(getCache, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
+        
+        // 活动获奖弹窗
+        function activityWinnerDialog() {
+            window.BitKeepJS.postMessage(JSON.stringify([
+                "activityWinnerDialog",
+                "callback_id",         // callId - 回调ID
+                "2",                   // awardStatus - 奖励状态(2,3,4有效)
+                "https://cdn.example.com/rewards/trophy.png", // awardUrl - 奖励图片URL
+                "nft",                 // awardType - 奖励类型
+                "12345-abcde-67890",   // uuid - 唯一标识
+                "恭喜获得NFT奖励!"      // title - 标题文本
+            ]))
+        }
+
+        function getCache() {
+            myj = window.__jHost
+            window.__jMessage = console.log
+            myj("saveWebCache", "2333", "hello")
+            myj("queryWebCache", "2333")
+        }
+
+        // 显示结果到页面
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById("result");
+
+            // 处理换行符，确保在HTML中正确显示
+            if (typeof content === "string") {
+                content = content.replace(/\n/g, "<br>");
+                resultDiv.innerHTML = content;
+            } else {
+                resultDiv.textContent = content;
+            }
+
+            resultDiv.className = isError ? "error" : "";
+        }
+        initDSBridge();
+    </script>
 </body>
+
 </html>
