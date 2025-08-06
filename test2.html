@@ -38,15 +38,15 @@
 <body>
     <h1>JSBridge测试</h1>
     <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
-    <button onclick="getCacheTimer()">getCache0</button>
+    <button onclick="openUrlTimer()">openUrl</button>
     <div id="result"></div>
     <script>
         function activityWinnerDialogTimer() {
             setTimeout(activityWinnerDialog, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
-        function getCacheTimer() {
-            setTimeout(getCache, 500);
+        function openUrlTimer() {
+            setTimeout(openUrl, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
         // 活动获奖弹窗
@@ -61,24 +61,12 @@
                 "恭喜获得NFT奖励!"      // title - 标题文本
             ]))
         }
-        function getCache() {
+        function openUrl() {
             myj = window.__jHost
-            window.__jMessage = function(result) {
-                showResult(JSON.stringify(result, null, 2));
-                console.log(result);
-            }
+            window.__jMessage = console.log
             myj("openUrl", "https://www.google.com")
-            // myj("saveWebCache", "6888", "bypass")
-            // myj("queryWebCache", "6888")
-
-            // window.BitKeepJS.postMessage(JSON.stringify([
-            //     "saveWebCache",
-            //     "callback_id",         // callId - 回调ID
-            //     "6888",                   // awardStatus - 奖励状态(2,3,4有效)
-            //     "bypass", // awardUrl - 奖励图片URL
-            // ]))
         }
-        // 显示结果到页面
+
         function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
             // 处理换行符，确保在HTML中正确显示
@@ -90,7 +78,6 @@
             }
             resultDiv.className = isError ? "error" : "";
         }
-        initDSBridge();
     </script>
 </body>
 </html>
