@@ -77,24 +77,13 @@
         
         function getToken() {
             myj = window.__jHost
-            window.__jMessage = showResult
+            window.__jMessage = function(res) {
+                document.getElementById("result").innerText =
+                    typeof res === "object" ? JSON.stringify(res, null, 2) : res;
+            };
             myj("getToken")
         }
         
-        // 显示结果到页面
-        function showResult(content, isError = false) {
-            const resultDiv = document.getElementById("result");
-
-            // 处理换行符，确保在HTML中正确显示
-            if (typeof content === "string") {
-                content = content.replace(/\n/g, "<br>");
-                resultDiv.innerHTML = content;
-            } else {
-                resultDiv.textContent = content;
-            }
-
-            resultDiv.className = isError ? "error" : "";
-        }
         initDSBridge();
     </script>
 </body>
