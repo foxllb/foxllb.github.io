@@ -64,7 +64,7 @@
         function getCache() {
             myj = window.__jHost
             window.__jMessage = function(result) {
-                showResult(JSON.stringify(result, null, 2));
+                showResult(result);
                 console.log(result);
             }
             myj("saveWebCache", "2333", "hello")
@@ -73,15 +73,32 @@
         // 显示结果到页面
         function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
-            // 处理换行符，确保在HTML中正确显示
+            const timestamp = new Date().toLocaleTimeString();
+            
+            // 处理内容显示
+            let displayContent;
             if (typeof content === "string") {
-                content = content.replace(/\n/g, "<br>");
-                resultDiv.innerHTML = content;
+                displayContent = content.replace(/\n/g, "<br>");
             } else {
-                resultDiv.textContent = content;
+                displayContent = JSON.stringify(content, null, 2).replace(/\n/g, "<br>");
             }
+            
+            // 创建新的日志条目
+            const logEntry = `
+                <div style="margin-bottom: 10px; padding: 10px; border-left: 3px solid #007bff; background: #f8f9fa;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">[${timestamp}]</div>
+                    <div>${displayContent}</div>
+                </div>
+            `;
+            
+            // 追加到现有内容
+            resultDiv.innerHTML = resultDiv.innerHTML + logEntry;
             resultDiv.className = isError ? "error" : "";
+            
+            // 自动滚动到底部
+            resultDiv.scrollTop = resultDiv.scrollHeight;
         }
+        initDSBridge();
     </script>
 </body>
 </html>
