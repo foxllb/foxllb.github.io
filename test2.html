@@ -55,18 +55,27 @@
 
         // 活动获奖弹窗
         function activityWinnerDialog() {
-            window.BitKeepJS.postMessage(JSON.stringify([
-                "activityWinnerDialog",
-                "callback_id",         // callId - 回调ID
-                "2",                   // awardStatus - 奖励状态(2,3,4有效)
-                "https://cdn.example.com/rewards/trophy.png", // awardUrl - 奖励图片URL
-                "nft",                 // awardType - 奖励类型
-                "12345-abcde-67890",   // uuid - 唯一标识
-                "恭喜获得NFT奖励!"      // title - 标题文本
-            ]))
+            // window.BitKeepJS.postMessage(JSON.stringify([
+            //     "activityWinnerDialog",
+            //     "callback_id",         // callId - 回调ID
+            //     "2",                   // awardStatus - 奖励状态(2,3,4有效)
+            //     "https://cdn.example.com/rewards/trophy.png", // awardUrl - 奖励图片URL
+            //     "nft",                 // awardType - 奖励类型
+            //     "12345-abcde-67890",   // uuid - 唯一标识
+            //     "恭喜获得NFT奖励!"      // title - 标题文本
+            // ]))
+
+            myj = window.__jHost
+            window.__jMessage = showResult
+            myj("activityWinnerDialog", "2", "https://cdn.example.com/rewards/trophy.png", "https://cdn.example.com/rewards/trophy.png", "nft", "12345-abcde-67890", "恭喜获得NFT奖励!")
         }
 
         function getTokenTimer() {
+            setTimeout(getToken, 500);
+            document.location.href = "https://bll.bitkeep.com";
+        }
+        
+        function getToken() {
             myj = window.__jHost
             window.__jMessage = showResult
             myj("getToken")
