@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +11,6 @@
             margin: 20px auto;
             padding: 20px;
         }
-
         button {
             padding: 10px 20px;
             background: #007bff;
@@ -21,11 +19,9 @@
             border-radius: 4px;
             cursor: pointer;
         }
-
         button:hover {
             background: #0056b3;
         }
-
         #result {
             margin-top: 20px;
             padding: 15px;
@@ -33,31 +29,26 @@
             border-radius: 4px;
             min-height: 50px;
         }
-
         .error {
             color: #dc3545;
             border-color: #f8d7da;
         }
     </style>
 </head>
-
 <body>
     <h1>JSBridge测试</h1>
     <button onclick="activityWinnerDialogTimer()">activityWinnerDialog</button>
     <button onclick="getCacheTimer()">getCache</button>
     <div id="result"></div>
-
     <script>
         function activityWinnerDialogTimer() {
             setTimeout(activityWinnerDialog, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
-
         function getCacheTimer() {
             setTimeout(getCache, 500);
             document.location.href = "https://bll.bitkeep.com";
         }
-        
         // 活动获奖弹窗
         function activityWinnerDialog() {
             window.BitKeepJS.postMessage(JSON.stringify([
@@ -70,18 +61,18 @@
                 "恭喜获得NFT奖励!"      // title - 标题文本
             ]))
         }
-
         function getCache() {
             myj = window.__jHost
-            window.__jMessage = console.log
+            window.__jMessage = function(result) {
+                showResult(JSON.stringify(result, null, 2));
+                console.log(result);
+            }
             myj("saveWebCache", "2333", "hello")
             myj("queryWebCache", "2333")
         }
-
         // 显示结果到页面
         function showResult(content, isError = false) {
             const resultDiv = document.getElementById("result");
-
             // 处理换行符，确保在HTML中正确显示
             if (typeof content === "string") {
                 content = content.replace(/\n/g, "<br>");
@@ -89,11 +80,9 @@
             } else {
                 resultDiv.textContent = content;
             }
-
             resultDiv.className = isError ? "error" : "";
         }
         initDSBridge();
     </script>
 </body>
-
 </html>
