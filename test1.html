@@ -62,7 +62,7 @@
         function getToken() {
             try {
                 // 同步调用 Java 方法
-                const token = dsBridge.call("account.tokenSync", null);
+                const token = window.dsBridge.call("account.tokenSync", null);
                 
                 // 显示结果
                 showResult(`Token 获取成功: ${token}`);
